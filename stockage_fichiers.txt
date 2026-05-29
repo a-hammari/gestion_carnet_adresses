@@ -1,0 +1,6 @@
+Effectivement, le Composant 2 (Stockage des données dans des fichiers texte, CSV ou JSON) 
+est une étape cruciale du Sprint 1. Ce module assure la transition entre une liste temporaire 
+en mémoire vive et une persistance durable des contacts.
+
+Mais on va resoudre le pb de persistance durable des contacts via le Stockage des données dans 
+des BD SQLite
