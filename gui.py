@@ -6,11 +6,10 @@ from contact import Contact
 
 class ContactApp:
     def __init__(self, root):
-        # Initialisation du carnet (utilisation de la classe basique de la Composante 1)
         self.carnet = AddressBook()
         
         self.root = root
-        self.root.title("Gestion Carnet d'Adresses")
+        self.root.title("Gestion de Carnet d'Adresses (v1.1.0)")
         self.root.geometry("500x550")
         self.root.resizable(False, False)
         
@@ -31,7 +30,7 @@ class ContactApp:
         self.entry_tel.grid(row=2, column=1, pady=5, padx=10)
         
         # --- 2. frameM : Zone d'Affichage (Milieu) ---
-        self.frameM = tk.LabelFrame(self.root, text=" Contacts Enregistrés (Mémoire locale) ", padx=15, pady=10)
+        self.frameM = tk.LabelFrame(self.root, text=" Contacts Enregistrés (Base SQLite) ", padx=15, pady=10)
         self.frameM.pack(fill=tk.BOTH, expand=True, padx=15, pady=5)
         
         self.scrollbar = tk.Scrollbar(self.frameM, orient=tk.VERTICAL)
@@ -54,7 +53,9 @@ class ContactApp:
         self.btn_quitter = tk.Button(self.frameB, text="Quitter", width=12, bg="#9E9E9E", fg="white", command=self.root.quit)
         self.btn_quitter.pack(side=tk.RIGHT, padx=5)
 
-    # --- Méthodes de Validation Locales ---
+        # Chargement initial depuis SQLite
+        self.rafraichir_liste()
+
     def valider_email(self, email):
         pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
         return bool(re.match(pattern, email))
@@ -62,7 +63,6 @@ class ContactApp:
     def valider_telephone(self, tel):
         return tel.isdigit() and len(tel) >= 10
 
-    # --- Actions de l'Interface ---
     def rafraichir_liste(self):
         self.listbox.delete(0, tk.END)
         for c in self.carnet.contacts:
@@ -74,12 +74,10 @@ class ContactApp:
         email = self.entry_email.get().strip()
         tel = self.entry_tel.get().strip()
         
-        # 1. Vérification des champs
         if not nom or not email or not tel:
             messagebox.showwarning("Champs requis", "Tous les champs doivent être renseignés.")
             return
         
-        # 2. Validation des formats
         if not self.valider_email(email):
             messagebox.showerror("Erreur", "L'adresse email est invalide.")
             return
@@ -87,19 +85,18 @@ class ContactApp:
             messagebox.showerror("Erreur", "Le téléphone doit contenir uniquement des chiffres (min 10).")
             return
             
-        # 3. Vérification des doublons dans la liste en mémoire
         for c in self.carnet.contacts:
             if c.nom.lower() == nom.lower():
                 messagebox.showerror("Doublon", f"Le contact '{nom}' existe déjà.")
                 return
 
-        # 4. Ajout au carnet en mémoire
         nouveau_contact = Contact(nom, email, tel)
-        self.carnet.add_contact(nouveau_contact)
-        
-        self.rafraichir_liste()
-        self.nettoyer_champs()
-        messagebox.showinfo("Succès", "Contact ajouté avec succès.")
+        if self.carnet.add_contact(nouveau_contact):
+            self.rafraichir_liste()
+            self.nettoyer_champs()
+            messagebox.showinfo("Succès", "Contact enregistré dans SQLite.")
+        else:
+            messagebox.showerror("Erreur", "Impossible d'insérer le contact.")
 
     def supprimer_contact(self):
         selection = self.listbox.curselection()
@@ -111,18 +108,12 @@ class ContactApp:
         ligne_texte = self.listbox.get(index)
         nom_selectionne = ligne_texte.split('|')[0].strip()
         
-        if messagebox.askyesno("Confirmation", f"Supprimer '{nom_selectionne}' ?"):
-            # Appel à la méthode de base de AddressBook
-            self.carnet.remove_contact(nom_selectionne)
-            self.rafraichir_liste()
-            messagebox.showinfo("Supprimé", "Le contact a été retiré.")
+        if messagebox.askyesno("Confirmation", f"Supprimer '{nom_selectionne}' de la base SQLite ?"):
+            if self.carnet.remove_contact(nom_selectionne):
+                self.rafraichir_liste()
+                messagebox.showinfo("Supprimé", "Le contact a été retiré de la base de données.")
 
     def nettoyer_champs(self):
         self.entry_nom.delete(0, tk.END)
         self.entry_email.delete(0, tk.END)
         self.entry_tel.delete(0, tk.END)
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = ContactApp(root)
-    root.mainloop()
